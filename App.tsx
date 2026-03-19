@@ -7,6 +7,7 @@ import { generateBeautyImage, generateBeautyPrompt, analyzeImageAttributes, anal
 import { BeautyState, CustomPreset } from './types';
 import { INITIAL_FEATURES, INITIAL_HAIR, INITIAL_MAKEUP } from './constants';
 import { Sparkles, Upload, Trash2, Zap, Eye, EyeOff, Download, RefreshCcw, Search, Activity, Copy, Check, Loader2, User, Key, BadgeCheck, ArrowRight, X, ChevronLeft, ChevronRight, Image as ImageIcon, Layers, Maximize2 } from 'lucide-react';
+import GuestLoginModal from './components/GuestLoginModal';
 
 const PRESETS_STORAGE_KEY = 'beautysynth_custom_presets';
 
@@ -72,10 +73,7 @@ const App: React.FC = () => {
   const [currentGuestNumber, setCurrentGuestNumber] = useState<string>("");
   
   // Custom Modals State
-  const [showGuestModal, setShowGuestModal] = useState(false);
-  const [guestPinInput, setGuestPinInput] = useState("");
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [loginModalMode, setLoginModalMode] = useState<'pin' | 'key' | 'both' | null>(null);
 
   // History Pagination & Modal State
   const [historyPage, setHistoryPage] = useState(1);
@@ -127,9 +125,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isCheckingKey && !hasApiKey) {
-      setShowApiModal(true);
+      if (!currentGuestNumber) {
+        setLoginModalMode('both');
+      } else {
+        setLoginModalMode('key');
+      }
     }
-  }, [isCheckingKey, hasApiKey]);
+  }, [isCheckingKey, hasApiKey, currentGuestNumber]);
 
   const loadGallery = async (guestNum: string) => {
     try {
@@ -144,52 +146,26 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateGuestPin = () => {
-    if (guestPinInput.length !== 4) {
-      alert("Please enter a 4-digit PIN.");
-      return;
-    }
-    setCurrentGuestNumber(guestPinInput);
-    localStorage.setItem('last_guest_pin', guestPinInput);
-    loadGallery(guestPinInput);
-    setShowGuestModal(false);
-  };
-
-  const generateRandomPin = () => {
-    const pin = Math.floor(1000 + Math.random() * 9000).toString();
-    setGuestPinInput(pin);
-  };
-
-  const handleUpdateApiKey = async () => {
-    const key = apiKeyInput.trim();
-    if (!key) {
-      alert("Please enter a valid API Key.");
-      return;
+  const handleLogin = (pin: string) => {
+    if (pin) {
+      setCurrentGuestNumber(pin);
+      localStorage.setItem('last_guest_pin', pin);
+      loadGallery(pin);
     }
     
-    try {
-      // Validate the key by making a simple API call
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: key });
-      await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: 'test'
-      });
-      
-      localStorage.setItem('custom_gemini_api_key', key);
+    // Check if key was saved
+    const customKey = localStorage.getItem('custom_gemini_api_key');
+    if (customKey) {
       setHasApiKey(true);
-      setShowApiModal(false);
-      setError(null);
-    } catch (err: any) {
-      console.error("API Key validation failed:", err);
-      alert("Invalid API Key. Please check and try again.");
     }
+    
+    setLoginModalMode(null);
   };
 
   const handleSelectApiKey = async () => {
     const customKey = localStorage.getItem('custom_gemini_api_key');
     if (customKey) {
-      setShowApiModal(true);
+      setLoginModalMode('key');
       return;
     }
 
@@ -199,7 +175,7 @@ const App: React.FC = () => {
       setError(null);
     } catch (e) {
       console.error("AI Studio key selection failed, showing manual input modal", e);
-      setShowApiModal(true);
+      setLoginModalMode('key');
     }
   };
 
@@ -518,7 +494,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => { setGuestPinInput(currentGuestNumber); setShowGuestModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors">
+          <button onClick={() => setLoginModalMode('pin')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5 hover:bg-zinc-800 transition-colors">
             <User className="w-3.5 h-3.5 text-indigo-400" />
             <span className="text-[10px] font-bold text-zinc-300 tracking-widest">GUEST: {currentGuestNumber || 'NONE'}</span>
           </button>
@@ -744,86 +720,14 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Guest PIN Modal */}
-      {showGuestModal && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1a1b26] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
-            <button onClick={() => setShowGuestModal(false)} className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-            <div className="p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full border border-indigo-500/30 flex items-center justify-center mb-6 bg-indigo-500/5">
-                <User className="w-6 h-6 text-indigo-400" />
-              </div>
-              <h2 className="text-xl font-black text-white mb-2">CHANGE GUEST PIN</h2>
-              <p className="text-sm text-zinc-400 mb-8">Update your 4-digit guest PIN.</p>
-              
-              <div className="w-full text-left mb-6">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">GUEST PIN (4 DIGITS)</label>
-                <div className="flex gap-3">
-                  <div className="flex-1 bg-[#0f1015] border border-white/10 rounded-xl px-6 py-4 flex items-center justify-between focus-within:border-indigo-500/50 transition-colors">
-                    <input 
-                      type="text" 
-                      maxLength={4}
-                      value={guestPinInput}
-                      onChange={(e) => setGuestPinInput(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="bg-transparent text-white text-2xl font-mono tracking-[1em] outline-none w-full"
-                      placeholder="0000"
-                    />
-                  </div>
-                  <button onClick={generateRandomPin} className="w-16 bg-[#242636] border border-white/5 rounded-xl flex items-center justify-center hover:bg-[#2a2d3d] transition-colors text-indigo-400">
-                    <RefreshCcw className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <button 
-                onClick={handleUpdateGuestPin}
-                className="w-full py-4 bg-[#5c5cff] hover:bg-[#4a4ae6] text-white rounded-xl font-bold tracking-wide transition-all flex items-center justify-center gap-2"
-              >
-                UPDATE PIN <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* API Key Modal */}
-      {showApiModal && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1a1b26] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
-            <button onClick={() => setShowApiModal(false)} className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-            <div className="p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full border border-indigo-500/30 flex items-center justify-center mb-6 bg-indigo-500/5">
-                <Key className="w-6 h-6 text-indigo-400" />
-              </div>
-              <h2 className="text-xl font-black text-white mb-2">UPDATE API KEY</h2>
-              <p className="text-sm text-zinc-400 mb-8">Update your Gemini API Key for Pro models.</p>
-              
-              <div className="w-full text-left mb-6">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">GEMINI API KEY</label>
-                <div className="bg-[#0f1015] border border-white/10 rounded-xl px-4 py-4 flex items-center focus-within:border-indigo-500/50 transition-colors">
-                  <input 
-                    type="password" 
-                    value={apiKeyInput}
-                    onChange={(e) => setApiKeyInput(e.target.value)}
-                    className="bg-transparent text-white text-lg font-mono tracking-widest outline-none w-full"
-                    placeholder="••••••••••••••••••••••••••••"
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={handleUpdateApiKey}
-                className="w-full py-4 bg-[#5c5cff] hover:bg-[#4a4ae6] text-white rounded-xl font-bold tracking-wide transition-all flex items-center justify-center gap-2"
-              >
-                UPDATE KEY <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Guest Login / API Key Modal */}
+      {loginModalMode && (
+        <GuestLoginModal
+          mode={loginModalMode}
+          initialPin={currentGuestNumber}
+          onLogin={handleLogin}
+          onClose={loginModalMode === 'both' && !hasApiKey ? undefined : () => setLoginModalMode(null)}
+        />
       )}
 
       {/* History Full-Screen Modal */}
