@@ -6,6 +6,22 @@ import {
   BANG_STYLES, FOUNDATION_SHADES, INITIAL_FEATURES 
 } from "../constants";
 
+export const validateApiKey = async (apiKey: string): Promise<boolean> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    // Make a lightweight request to verify the key
+    await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "ping",
+      config: { maxOutputTokens: 1 }
+    });
+    return true;
+  } catch (error) {
+    console.error("API Key validation failed:", error);
+    return false;
+  }
+};
+
 const STYLE_DESCRIPTIONS: Record<string, string> = {
   'standard': 'standard soft eyebrow shape, natural oval arch',
   'high_arch': 'high arched eyebrows, sharp peak for a defined lift',
