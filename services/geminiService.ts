@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { BeautyState } from "../types";
 import { 
   SKIN_TONES, SKIN_TEXTURES, INITIAL_MAKEUP, 
-  BANG_STYLES, FOUNDATION_SHADES, INITIAL_FEATURES 
+  BANG_STYLES, MALE_BANG_STYLES, FOUNDATION_SHADES, INITIAL_FEATURES 
 } from "../constants";
 
 export const validateApiKey = async (apiKey: string): Promise<boolean> => {
@@ -56,7 +56,19 @@ const HAIR_TEXTURE_DESCRIPTIONS: Record<string, string> = {
   'jelly': 'tight jelly perm with consistent water-wave ripples',
   'hippie': 'bold hippie perm with tight kinky curls and maximum texture',
   'hershey': 'shaggy layered hershey cut with wispy textured ends',
-  'hime': 'Japanese hime cut with sharp cheek-length side-locks'
+  'hime': 'Japanese hime cut with sharp cheek-length side-locks',
+  'volume': 'voluminous perm with soft root lift and natural flow',
+  'shadow': 'shadow perm with textured, slightly messy layers',
+  'garma': 'garma perm with a natural parted style and soft waves',
+  'as_perm': 'as perm with a natural, flowing texture and slight curl',
+  'spin_swallow': 'spin swallow perm with sharp, twisted, and edgy curls',
+  'leaf': 'leaf cut with long, flowing layers resembling a leaf shape',
+  'dandy': 'dandy cut with a neat, clean, and smooth texture',
+  'crop': 'crop cut with very short, textured, and forward-swept hair',
+  'ivy_league': 'ivy league cut with short sides and a slightly longer, styled top',
+  'regent': 'regent cut with the front hair swept up and back boldly',
+  'pomade': 'pomade style with a sleek, slicked-back or side-parted look',
+  'two_block': 'two-block cut with shaved sides and a longer, disconnected top'
 };
 
 const getSliderAdjective = (value: number, type: string): string => {
@@ -206,7 +218,7 @@ export const analyzeImageAttributes = async (base64Image: string) => {
         contents: { 
           parts: [
             { inlineData: { data, mimeType } }, 
-            { text: "Detailed anatomical facial analysis. Determine facial and skin percentages as INTEGERS between 0 and 100 (e.g., 50, 85). Return ONLY JSON." }
+            { text: `Detailed anatomical facial analysis. First, detect the gender of the subject ('female' or 'male'). Then determine facial and skin percentages as INTEGERS between 0 and 100 (e.g., 50, 85). Return ONLY JSON.` }
           ] 
         },
         config: { 
@@ -214,6 +226,7 @@ export const analyzeImageAttributes = async (base64Image: string) => {
           responseSchema: { 
             type: Type.OBJECT, 
             properties: { 
+              gender: { type: Type.STRING, enum: ["female", "male"], description: "Detected gender of the subject" },
               skinTone: { type: Type.NUMBER, description: "Skin tone percentage 0-100" }, 
               skinAge: { type: Type.NUMBER, description: "Skin age percentage 0-100" }, 
               eyeSize: { type: Type.NUMBER, description: "Eye size percentage 0-100" }, 
@@ -225,7 +238,7 @@ export const analyzeImageAttributes = async (base64Image: string) => {
               jawShape: { type: Type.NUMBER, description: "Jaw shape percentage 0-100" }, 
               lipFullness: { type: Type.NUMBER, description: "Lip fullness percentage 0-100" }, 
               hairLength: { type: Type.STRING, enum: ["short", "medium", "long"] }, 
-              hairTexture: { type: Type.STRING, enum: ["straight", "curly"] },
+              hairTexture: { type: Type.STRING, enum: ["straight", "curly", "wavy"] },
               eyebrowStyle: { type: Type.STRING, enum: ["standard", "high_arch", "straight", "curved", "thin", "soft_arch"] },
               eyebrowColor: { type: Type.STRING, description: "Hex color of eyebrows" },
               eyelinerStyle: { type: Type.STRING, enum: ["none", "tightline", "classic", "puppy", "cat", "siren", "bold", "smoky"] },
@@ -387,7 +400,8 @@ export const generateBeautyPrompt = (state: BeautyState): string => {
   } else if (referenceImages.hair) {
     hairIns = "HAIR REPLACEMENT: Copy from HAIR REF.";
   } else {
-    const selectedBang = BANG_STYLES.find(b => b.id === hair.bangStyle)?.label || 'none';
+    const bangList = state.gender === 'male' ? MALE_BANG_STYLES : BANG_STYLES;
+    const selectedBang = bangList.find(b => b.id === hair.bangStyle)?.label || 'none';
     const textureDesc = HAIR_TEXTURE_DESCRIPTIONS[hair.hairTexture] || hair.hairTexture;
     const colorPrompt = hair.isGradient 
       ? `Gradient Color: Starting with ${hair.hairColorTop} at roots, transitioning at ${hair.hairColorBoundary}% to ${hair.hairColorBottom} at the ends.`
@@ -396,7 +410,7 @@ export const generateBeautyPrompt = (state: BeautyState): string => {
     hairIns = `HAIR: ${hair.hairLength} length with ${textureDesc}. Bangs: ${selectedBang}. ${colorPrompt} Volume: ${hair.hairVolume}%. ${customPrompts.hair ? `HAIR NOTE: ${customPrompts.hair}` : ''}`;
   }
 
-  return `Task: Professional Beauty Retouching. 
+  return `Task: Professional Beauty Retouching for a ${state.gender} subject. 
     CRITICAL MANDATE: Only modify requested features. DO NOT CHANGE OVERALL SKIN COLOR TEMPERATURE OR SATURATION. Each makeup element (eyes, lips, cheeks) must be applied in its own isolated logic without affecting the color balance of others.
     FACIAL STRUCTURE: ${faceIns} 
     MAKEUP (INDEPENDENT LAYERS): ${makeIns}
