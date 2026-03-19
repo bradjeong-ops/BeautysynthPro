@@ -131,6 +131,14 @@ export const HAIR_LENGTHS = [
   { id: 'extra_long', label: '수퍼 롱(허리)' }
 ];
 
+export const MALE_HAIR_LENGTHS = [
+  { id: 'buzz', label: '버즈컷/반삭' },
+  { id: 'short', label: '짧은머리/크롭컷' },
+  { id: 'medium', label: '중간머리/댄디컷' },
+  { id: 'long', label: '긴머리/리프컷' },
+  { id: 'extra_long', label: '장발/예수머리' }
+];
+
 export const HAIR_TEXTURES = [
   { id: 'straight', label: '슬릭 (생머리)' },
   { id: 'c_curl', label: 'C컬/빌드펌' },
@@ -142,6 +150,15 @@ export const HAIR_TEXTURES = [
   { id: 'hime', label: '히메컷' }
 ];
 
+export const MALE_HAIR_TEXTURES = [
+  { id: 'straight', label: '직모/슬릭' },
+  { id: 'volume', label: '볼륨펌' },
+  { id: 'shadow', label: '쉐도우펌' },
+  { id: 'garma', label: '가르마펌/애즈펌' },
+  { id: 'spin_swallow', label: '스핀스왈로펌' },
+  { id: 'wet', label: '웨트헤어' }
+];
+
 export const BANG_STYLES = [
   { id: 'none', label: '없음 (여신머리)' },
   { id: 'see_through', label: '시스루 뱅' },
@@ -149,6 +166,14 @@ export const BANG_STYLES = [
   { id: 'side', label: '사이드 뱅' },
   { id: 'choppy', label: '처피 뱅' },
   { id: 'onion', label: '잔머리 뱅' }
+];
+
+export const MALE_BANG_STYLES = [
+  { id: 'none', label: '올림머리/포마드' },
+  { id: 'half', label: '반깐머리/가일컷' },
+  { id: 'down', label: '내린머리/댄디' },
+  { id: 'see_through', label: '시스루 댄디' },
+  { id: 'comma', label: '쉼표머리' }
 ];
 
 export const EYEBROW_STYLES = [
@@ -298,6 +323,19 @@ export const INITIAL_HAIR: HairFeatures = {
   hairLength: 'long',
   hairTexture: 'grace_perm',
   bangStyle: 'none',
+  hairVolume: 60,
+  hairShine: 50,
+  isGradient: false,
+  hairColorTop: '#3d251e',
+  hairColorBottom: '#3d251e',
+  hairColorBoundary: 50
+};
+
+export const MALE_INITIAL_HAIR: HairFeatures = {
+  hairStyle: 'Custom Look',
+  hairLength: 'medium',
+  hairTexture: 'volume',
+  bangStyle: 'down',
   hairVolume: 60,
   hairShine: 50,
   isGradient: false,
