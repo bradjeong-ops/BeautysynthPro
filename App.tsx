@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const [isComparing, setIsComparing] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentGuestNumber, setCurrentGuestNumber] = useState<string>("");
   
@@ -97,19 +98,22 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedHistoryIndex, galleryImages.length]);
 
+  const getAIStudio = () => (window as any).aistudio;
+
   useEffect(() => {
-    const checkApiKey = async () => {
-      let hasKey = false;
+    const checkKey = async () => {
       try {
-        if (localStorage.getItem('custom_gemini_api_key')) {
-          hasKey = true;
-        } else if (window.aistudio && window.aistudio.hasSelectedApiKey) {
-          hasKey = await window.aistudio.hasSelectedApiKey();
-        }
-      } catch (e) {}
-      setHasApiKey(hasKey);
+        const selected = await getAIStudio().hasSelectedApiKey();
+        const customKey = localStorage.getItem('custom_gemini_api_key');
+        setHasApiKey(selected || !!customKey);
+      } catch (e) {
+        const customKey = localStorage.getItem('custom_gemini_api_key');
+        setHasApiKey(!!customKey);
+      } finally {
+        setIsCheckingKey(false);
+      }
     };
-    checkApiKey();
+    checkKey();
     
     // Load last guest number if exists
     try {
@@ -120,6 +124,12 @@ const App: React.FC = () => {
       }
     } catch (e) {}
   }, []);
+
+  useEffect(() => {
+    if (!isCheckingKey && !hasApiKey) {
+      setShowApiModal(true);
+    }
+  }, [isCheckingKey, hasApiKey]);
 
   const loadGallery = async (guestNum: string) => {
     try {
@@ -150,25 +160,45 @@ const App: React.FC = () => {
     setGuestPinInput(pin);
   };
 
-  const handleUpdateApiKey = () => {
-    if (!apiKeyInput.trim()) {
+  const handleUpdateApiKey = async () => {
+    const key = apiKeyInput.trim();
+    if (!key) {
       alert("Please enter a valid API Key.");
       return;
     }
-    localStorage.setItem('custom_gemini_api_key', apiKeyInput.trim());
-    setHasApiKey(true);
-    setShowApiModal(false);
+    
+    try {
+      // Validate the key by making a simple API call
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: key });
+      await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: 'test'
+      });
+      
+      localStorage.setItem('custom_gemini_api_key', key);
+      setHasApiKey(true);
+      setShowApiModal(false);
+      setError(null);
+    } catch (err: any) {
+      console.error("API Key validation failed:", err);
+      alert("Invalid API Key. Please check and try again.");
+    }
   };
 
   const handleSelectApiKey = async () => {
-    if (window.aistudio && window.aistudio.openSelectKey) {
-      try {
-        await window.aistudio.openSelectKey();
-        setHasApiKey(true);
-      } catch (e) {
-        console.error("Failed to select API key:", e);
-      }
-    } else {
+    const customKey = localStorage.getItem('custom_gemini_api_key');
+    if (customKey) {
+      setShowApiModal(true);
+      return;
+    }
+
+    try {
+      await getAIStudio().openSelectKey();
+      setHasApiKey(true);
+      setError(null);
+    } catch (e) {
+      console.error("AI Studio key selection failed, showing manual input modal", e);
       setShowApiModal(true);
     }
   };
@@ -309,7 +339,15 @@ const App: React.FC = () => {
         setError("Synthesis failed. Please check your settings and try again.");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred during synthesis.");
+      const rawMsg = err.message || "Unknown API Error";
+      let displayMsg = rawMsg;
+      if (rawMsg.includes("403")) displayMsg = "403 Forbidden: 유료 결제 계정이 아니거나 API 접근 권한이 없습니다.";
+      if (rawMsg.includes("429")) displayMsg = "429 Too Many Requests: 할당량을 초과했습니다. 잠시 후 시도하세요.";
+      if (rawMsg.includes("entity was not found")) {
+        displayMsg = "API 키가 올바른 프로젝트에 속해 있지 않습니다. 키를 다시 선택하세요.";
+        setHasApiKey(false);
+      }
+      setError(displayMsg);
     } finally {
       setIsGenerating(false);
     }
@@ -345,7 +383,15 @@ const App: React.FC = () => {
           await applyAnalysis(analysis, newImage, detectedRatio);
         } catch (err: any) {
           console.error("Re-analysis failed:", err);
-          setError(`Failed to re-analyze synthesized result: ${err.message || "Unknown error"}`);
+          const rawMsg = err.message || "Unknown error";
+          let displayMsg = `Failed to re-analyze synthesized result: ${rawMsg}`;
+          if (rawMsg.includes("403")) displayMsg = "403 Forbidden: 유료 결제 계정이 아니거나 API 접근 권한이 없습니다.";
+          if (rawMsg.includes("429")) displayMsg = "429 Too Many Requests: 할당량을 초과했습니다. 잠시 후 시도하세요.";
+          if (rawMsg.includes("entity was not found")) {
+            displayMsg = "API 키가 올바른 프로젝트에 속해 있지 않습니다. 키를 다시 선택하세요.";
+            setHasApiKey(false);
+          }
+          setError(displayMsg);
           // Fallback: at least set the image
           const validRatios = ["1:1", "3:4", "4:3", "9:16", "16:9"];
           const finalRatio = (validRatios.includes(detectedRatio) ? detectedRatio : "1:1") as BeautyState['aspectRatio'];
@@ -435,7 +481,15 @@ const App: React.FC = () => {
               await applyAnalysis(analysis, base64String, detectedRatio);
             } catch (err: any) {
               console.error("Analysis failed:", err);
-              setError(`AI analysis failed: ${err.message || "Unknown error"}. Please check your API key and connection.`);
+              const rawMsg = err.message || "Unknown error";
+              let displayMsg = `AI analysis failed: ${rawMsg}. Please check your API key and connection.`;
+              if (rawMsg.includes("403")) displayMsg = "403 Forbidden: 유료 결제 계정이 아니거나 API 접근 권한이 없습니다.";
+              if (rawMsg.includes("429")) displayMsg = "429 Too Many Requests: 할당량을 초과했습니다. 잠시 후 시도하세요.";
+              if (rawMsg.includes("entity was not found")) {
+                displayMsg = "API 키가 올바른 프로젝트에 속해 있지 않습니다. 키를 다시 선택하세요.";
+                setHasApiKey(false);
+              }
+              setError(displayMsg);
             } finally {
               setIsAnalyzing(false);
             }
