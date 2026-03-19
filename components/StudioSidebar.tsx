@@ -10,6 +10,7 @@ import { BeautyState, CustomPreset } from '../types';
 import { 
   SKIN_TONES, SKIN_TEXTURES, HAIR_COLOR_PRESETS, MAKEUP_PRESETS,
   HAIR_LENGTHS, HAIR_TEXTURES, BANG_STYLES,
+  MALE_HAIR_LENGTHS, MALE_HAIR_TEXTURES, MALE_BANG_STYLES,
   EYEBROW_STYLES, EYELINER_STYLES, EYELASH_STYLES, BLUSH_STYLES, LIP_STYLES,
   MAKEUP_STYLES, HELP_CONTENT, FOUNDATION_SHADES, FOUNDATION_CATEGORIES, LENS_STYLES
 } from '../constants';
@@ -282,6 +283,23 @@ export const StudioSidebar: React.FC<SidebarProps> = ({ state, updateState, onRe
         <div className="h-px bg-rose-400/20 mb-6" /><p className="text-[13px] text-zinc-300 leading-relaxed whitespace-pre-wrap font-medium">{activeHelpId && HELP_CONTENT[activeHelpId].desc}</p>
       </div>
 
+      <div className="p-4 border-b border-zinc-900 bg-zinc-950 flex justify-center">
+        <div className="flex bg-zinc-900 rounded-full p-1 w-full max-w-[240px]">
+          <button
+            onClick={() => updateState({ gender: 'female' })}
+            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${state.gender === 'female' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Female
+          </button>
+          <button
+            onClick={() => updateState({ gender: 'male' })}
+            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${state.gender === 'male' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Male
+          </button>
+        </div>
+      </div>
+
       <div className="p-6 border-b border-zinc-900 bg-black/40">
         <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-indigo-500" /><h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Expert Edit Modes</h3></div>
           <div className="flex items-center gap-3">
@@ -354,7 +372,7 @@ export const StudioSidebar: React.FC<SidebarProps> = ({ state, updateState, onRe
                   {state.referenceImages.hair && <LockOverlay category="Hair" />}
                   <div className={state.referenceImages.hair ? 'opacity-20 pointer-events-none filter blur-[1px]' : ''}>
                     <SubSection title="Cut & Style" defaultOpen={true}>
-                      <div className="space-y-4"><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Length & Cut</span><StyleSelector options={HAIR_LENGTHS} selectedId={state.hair.hairLength} onSelect={(id) => handleHairChange('hairLength', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Texture & Perm</span><StyleSelector options={HAIR_TEXTURES} selectedId={state.hair.hairTexture} onSelect={(id) => handleHairChange('hairTexture', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Bangs</span><StyleSelector options={BANG_STYLES} selectedId={state.hair.bangStyle} onSelect={(id) => handleHairChange('bangStyle', id)} /></div></div>
+                      <div className="space-y-4"><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Length & Cut</span><StyleSelector options={state.gender === 'male' ? MALE_HAIR_LENGTHS : HAIR_LENGTHS} selectedId={state.hair.hairLength} onSelect={(id) => handleHairChange('hairLength', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Texture & Perm</span><StyleSelector options={state.gender === 'male' ? MALE_HAIR_TEXTURES : HAIR_TEXTURES} selectedId={state.hair.hairTexture} onSelect={(id) => handleHairChange('hairTexture', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Bangs</span><StyleSelector options={state.gender === 'male' ? MALE_BANG_STYLES : BANG_STYLES} selectedId={state.hair.bangStyle} onSelect={(id) => handleHairChange('bangStyle', id)} /></div></div>
                     </SubSection>
                     <SubSection title="Quality & Volume" defaultOpen={false}>
                       <div className="space-y-4"><div className="space-y-2"><div className="flex justify-between text-[10px] font-bold"><span className="text-zinc-500">Volume</span><span className="text-rose-400">{state.hair.hairVolume}</span></div><input type="range" min="0" max="100" value={state.hair.hairVolume} onChange={(e) => handleHairChange('hairVolume', parseInt(e.target.value))} className="w-full accent-rose-500 h-1 bg-zinc-900 rounded-full appearance-none cursor-pointer" /></div><div className="space-y-2"><div className="flex justify-between text-[10px] font-bold items-center"><div className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-rose-400" /><span className="text-zinc-500">Hair Shine</span></div><span className="text-rose-400">{state.hair.hairShine}%</span></div><input type="range" min="0" max="100" value={state.hair.hairShine} onChange={(e) => handleHairChange('hairShine', parseInt(e.target.value))} className="w-full accent-rose-500 h-1 bg-zinc-900 rounded-full appearance-none cursor-pointer" /></div></div>
