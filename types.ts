@@ -28,10 +28,9 @@ export interface SkinFeatures {
 
 export interface HairFeatures {
   hairStyle: string;
-  hairLength: 'pixie' | 'leaf' | 'bob' | 'medium' | 'long' | 'extra_long';
-  // Fixed: Added 'grace_perm' to the allowed union type for hairTexture
-  hairTexture: 'straight' | 'c_curl' | 's_curl' | 'jelly' | 'hippie' | 'hershey' | 'hime' | 'grace_perm';
-  bangStyle: 'none' | 'see_through' | 'full_blunt' | 'side' | 'choppy' | 'onion';
+  hairLength: string;
+  hairTexture: string;
+  bangStyle: string;
   hairVolume: number;
   hairShine: number;
   isGradient: boolean;
@@ -67,6 +66,7 @@ export interface CustomPreset {
 }
 
 export interface BeautyState {
+  gender: 'female' | 'male';
   baseImage: string | null;
   referenceImages: {
     face: string | null;
