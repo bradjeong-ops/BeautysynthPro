@@ -5,7 +5,7 @@ import { StudioSidebar } from './components/StudioSidebar';
 import { PreviewCanvas } from './components/PreviewCanvas';
 import { generateBeautyImage, generateBeautyPrompt, analyzeImageAttributes, analyzeResultingAesthetics } from './services/geminiService';
 import { BeautyState, CustomPreset } from './types';
-import { INITIAL_FEATURES, INITIAL_HAIR, INITIAL_MAKEUP } from './constants';
+import { INITIAL_FEATURES, INITIAL_HAIR, MALE_INITIAL_HAIR, INITIAL_MAKEUP } from './constants';
 import { Sparkles, Upload, Trash2, Zap, Eye, EyeOff, Download, RefreshCcw, Search, Activity, Copy, Check, Loader2, User, Key, BadgeCheck, ArrowRight, X, ChevronLeft, ChevronRight, Image as ImageIcon, Layers, Maximize2 } from 'lucide-react';
 import GuestLoginModal from './components/GuestLoginModal';
 
@@ -25,6 +25,7 @@ const App: React.FC = () => {
     }
 
     return {
+      gender: 'female',
       baseImage: null,
       referenceImages: {
         face: null,
@@ -205,6 +206,8 @@ const App: React.FC = () => {
     const validRatios = ["1:1", "3:4", "4:3", "9:16", "16:9"];
     const finalRatio = (validRatios.includes(detectedRatio) ? detectedRatio : "1:1") as BeautyState['aspectRatio'];
 
+    const detectedGender = (data.gender && data.gender.toLowerCase() === 'male') ? 'male' : (data.gender && data.gender.toLowerCase() === 'female' ? 'female' : state.gender);
+
     const skinToneVal = scale(data.skinTone);
     const skinToneId = skinToneVal < 20 ? 'porcelain' 
                      : skinToneVal < 40 ? 'fair' 
@@ -212,8 +215,12 @@ const App: React.FC = () => {
                      : skinToneVal < 80 ? 'tanned' 
                      : 'deep';
 
-    const hairLen = (data.hairLength === 'short' ? 'bob' : data.hairLength === 'medium' ? 'medium' : 'long') as any;
-    const hairTex = (data.hairTexture === 'straight' ? 'straight' : 's_curl') as any;
+    const hairLen = detectedGender === 'male' 
+      ? (data.hairLength === 'short' ? 'short' : data.hairLength === 'medium' ? 'medium' : 'long')
+      : (data.hairLength === 'short' ? 'bob' : data.hairLength === 'medium' ? 'medium' : 'long');
+    const hairTex = detectedGender === 'male'
+      ? (data.hairTexture === 'straight' ? 'straight' : 'volume')
+      : (data.hairTexture === 'straight' ? 'straight' : 's_curl');
 
     const analyzedFeatures = {
       ...INITIAL_FEATURES,
@@ -233,29 +240,31 @@ const App: React.FC = () => {
       skinAge: scale(data.skinAge ?? 20),
     };
 
+    const baseHair = detectedGender === 'male' ? MALE_INITIAL_HAIR : INITIAL_HAIR;
     const analyzedHair = {
-      ...state.hair,
+      ...baseHair,
       hairLength: hairLen,
       hairTexture: hairTex,
     };
 
     const analyzedMakeup = {
-      ...state.makeup,
-      eyebrowStyle: data.eyebrowStyle || state.makeup.eyebrowStyle,
-      eyebrowColor: data.eyebrowColor || state.makeup.eyebrowColor,
-      eyelinerStyle: data.eyelinerStyle || state.makeup.eyelinerStyle,
-      eyelashStyle: data.eyelashStyle || state.makeup.eyelashStyle,
-      eyeshadowColor: data.eyeshadowColor || state.makeup.eyeshadowColor,
-      blushStyle: data.blushStyle || state.makeup.blushStyle,
-      blushColor: data.blushColor || state.makeup.blushColor,
-      lipStyle: data.lipStyle || state.makeup.lipStyle,
-      lipColor: data.lipColor || state.makeup.lipColor,
-      lensStyle: data.lensStyle || state.makeup.lensStyle,
-      lensColor: data.lensColor || state.makeup.lensColor,
+      ...INITIAL_MAKEUP,
+      eyebrowStyle: data.eyebrowStyle || INITIAL_MAKEUP.eyebrowStyle,
+      eyebrowColor: data.eyebrowColor || INITIAL_MAKEUP.eyebrowColor,
+      eyelinerStyle: data.eyelinerStyle || INITIAL_MAKEUP.eyelinerStyle,
+      eyelashStyle: data.eyelashStyle || INITIAL_MAKEUP.eyelashStyle,
+      eyeshadowColor: data.eyeshadowColor || INITIAL_MAKEUP.eyeshadowColor,
+      blushStyle: data.blushStyle || INITIAL_MAKEUP.blushStyle,
+      blushColor: data.blushColor || INITIAL_MAKEUP.blushColor,
+      lipStyle: data.lipStyle || INITIAL_MAKEUP.lipStyle,
+      lipColor: data.lipColor || INITIAL_MAKEUP.lipColor,
+      lensStyle: data.lensStyle || INITIAL_MAKEUP.lensStyle,
+      lensColor: data.lensColor || INITIAL_MAKEUP.lensColor,
     };
 
     setState(prev => ({
       ...prev,
+      gender: detectedGender,
       baseImage: originalImage,
       aspectRatio: finalRatio,
       features: analyzedFeatures,
@@ -425,7 +434,7 @@ const App: React.FC = () => {
       } else if (category === 'skin') {
         updates.skin = prev.baseline ? { ...prev.skin, ...prev.baseline.skin } : { ...prev.skin, tone: 'natural', skinAge: 20 };
       } else if (category === 'hair') {
-        updates.hair = prev.baseline && prev.baseline.hair ? { ...prev.hair, ...prev.baseline.hair } : INITIAL_HAIR;
+        updates.hair = prev.baseline && prev.baseline.hair ? { ...prev.hair, ...prev.baseline.hair } : (prev.gender === 'male' ? MALE_INITIAL_HAIR : INITIAL_HAIR);
       } else if (category === 'makeup') {
         updates.makeup = INITIAL_MAKEUP;
       }
@@ -434,7 +443,13 @@ const App: React.FC = () => {
   };
 
   const updateState = (updates: Partial<BeautyState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+    setState(prev => {
+      const newState = { ...prev, ...updates };
+      if (updates.gender && updates.gender !== prev.gender) {
+        newState.hair = updates.gender === 'male' ? MALE_INITIAL_HAIR : INITIAL_HAIR;
+      }
+      return newState;
+    });
   };
 
   const onFileUpload = (type: keyof BeautyState['referenceImages'] | 'base') => (e: React.ChangeEvent<HTMLInputElement>) => {
