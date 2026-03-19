@@ -64,7 +64,7 @@ export default function GuestLoginModal({ onLogin, onClose, mode = 'both', initi
     const isPinMode = mode === 'pin' || mode === 'both';
     const isKeyMode = mode === 'key' || mode === 'both';
 
-    if (isPinMode && (pin.length !== 4 || !/^\\d+$/.test(pin))) {
+    if (isPinMode && (pin.length !== 4 || !/^\d+$/.test(pin))) {
       setError('Please enter a valid 4-digit PIN.');
       return;
     }
@@ -137,7 +137,7 @@ export default function GuestLoginModal({ onLogin, onClose, mode = 'both', initi
                   maxLength={4}
                   value={pin}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\\D/g, '');
+                    const val = e.target.value.replace(/\D/g, '');
                     setPin(val);
                     setError('');
                   }}
