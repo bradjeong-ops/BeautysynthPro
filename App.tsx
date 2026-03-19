@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { get, set } from 'idb-keyval';
 import { StudioSidebar } from './components/StudioSidebar';
 import { PreviewCanvas } from './components/PreviewCanvas';
-import { generateBeautyImage, generateBeautyPrompt, analyzeImageAttributes, analyzeResultingAesthetics } from './services/geminiService';
+import { generateBeautyImage, generateBeautyPrompt, analyzeImageAttributes, analyzeResultingAesthetics, setQuotaExceededCallback } from './services/geminiService';
 import { BeautyState, CustomPreset } from './types';
 import { INITIAL_FEATURES, INITIAL_HAIR, MALE_INITIAL_HAIR, INITIAL_MAKEUP } from './constants';
 import { Sparkles, Upload, Trash2, Zap, Eye, EyeOff, Download, RefreshCcw, Search, Activity, Copy, Check, Loader2, User, Key, BadgeCheck, ArrowRight, X, ChevronLeft, ChevronRight, Image as ImageIcon, Layers, Maximize2 } from 'lucide-react';
@@ -72,6 +72,7 @@ const App: React.FC = () => {
   const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentGuestNumber, setCurrentGuestNumber] = useState<string>("");
+  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   
   // Custom Modals State
   const [loginModalMode, setLoginModalMode] = useState<'pin' | 'key' | 'both' | null>(null);
@@ -96,6 +97,12 @@ const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedHistoryIndex, galleryImages.length]);
+
+  useEffect(() => {
+    setQuotaExceededCallback(() => {
+      setShowQuotaWarning(true);
+    });
+  }, []);
 
   const getAIStudio = () => (window as any).aistudio;
 
@@ -529,6 +536,16 @@ const App: React.FC = () => {
         <div className="flex-1 p-8 overflow-y-auto bg-[#09090b] scroll-smooth">
           <div className="flex flex-col gap-6 max-w-[1600px] mx-auto min-h-full">
             {error && <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-5 py-3 rounded-2xl flex items-center justify-between text-xs font-bold shrink-0"><span>{error}</span><button onClick={() => setError(null)}>✕</button></div>}
+            
+            {showQuotaWarning && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-5 py-3 rounded-2xl flex items-center justify-between text-xs font-bold shrink-0 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-4 h-4" />
+                  <span>Gemini 3.1 Pro 할당량이 모두 소진되었습니다. 더 빠른 분석을 위해 자동으로 Gemini 3 Flash 모델로 전환되었습니다.</span>
+                </div>
+                <button onClick={() => setShowQuotaWarning(false)} className="hover:text-amber-200 transition-colors">알겠어요</button>
+              </div>
+            )}
             
             {/* Top Section: Images */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[65vh] min-h-[500px] shrink-0">
