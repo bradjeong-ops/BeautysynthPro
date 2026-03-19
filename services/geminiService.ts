@@ -407,7 +407,11 @@ export const generateBeautyPrompt = (state: BeautyState): string => {
       ? `Gradient Color: Starting with ${hair.hairColorTop} at roots, transitioning at ${hair.hairColorBoundary}% to ${hair.hairColorBottom} at the ends.`
       : `Solid Uniform Color: ${hair.hairColorTop} from roots to ends. No variation in hue.`;
 
-    hairIns = `HAIR: ${hair.hairLength} length with ${textureDesc}. Bangs: ${selectedBang}. ${colorPrompt} Volume: ${hair.hairVolume}%. ${customPrompts.hair ? `HAIR NOTE: ${customPrompts.hair}` : ''}`;
+    if (hair.hairLength === 'buzz') {
+      hairIns = `HAIR: Extremely short buzz cut (shaved head, military style). No bangs, no volume, hair clipped very close to the scalp. ${colorPrompt} ${customPrompts.hair ? `HAIR NOTE: ${customPrompts.hair}` : ''}`;
+    } else {
+      hairIns = `HAIR: ${hair.hairLength} length with ${textureDesc}. Bangs: ${selectedBang}. ${colorPrompt} Volume: ${hair.hairVolume}%. ${customPrompts.hair ? `HAIR NOTE: ${customPrompts.hair}` : ''}`;
+    }
   }
 
   return `Task: Professional Beauty Retouching for a ${state.gender} subject. 
