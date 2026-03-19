@@ -187,15 +187,32 @@ const getApiKey = (): string => {
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, backoff = 2000): Promise<T> {
+let isProQuotaExceeded = false;
+let quotaExceededCallback: (() => void) | null = null;
+
+export const setQuotaExceededCallback = (callback: () => void) => {
+  quotaExceededCallback = callback;
+};
+
+async function retryWithBackoff<T>(fn: (model: string) => Promise<T>, preferredModel: string, retries = 3, backoff = 2000): Promise<T> {
+  let currentModel = isProQuotaExceeded ? 'gemini-3-flash-preview' : preferredModel;
+  
   try {
-    return await fn();
+    return await fn(currentModel);
   } catch (error: any) {
     const isQuotaExceeded = error?.status === 'RESOURCE_EXHAUSTED' || error?.code === 429;
+    
+    if (isQuotaExceeded && currentModel === 'gemini-3.1-pro-preview') {
+      console.warn("Gemini 3.1 Pro quota exceeded, falling back to Gemini 3 Flash.");
+      isProQuotaExceeded = true;
+      if (quotaExceededCallback) quotaExceededCallback();
+      return retryWithBackoff(fn, 'gemini-3-flash-preview', retries, backoff);
+    }
+
     if (retries > 0 && isQuotaExceeded) {
       console.warn(`Resource exhausted, retrying in ${backoff}ms...`);
       await delay(backoff);
-      return retryWithBackoff(fn, retries - 1, backoff * 2);
+      return retryWithBackoff(fn, currentModel, retries - 1, backoff * 2);
     }
     throw error;
   }
@@ -212,9 +229,9 @@ export const analyzeImageAttributes = async (base64Image: string) => {
   const [header, data] = base64Image.split(';base64,');
   const mimeType = header.split(':')[1];
   try {
-    return await retryWithBackoff(async () => {
+    return await retryWithBackoff(async (model) => {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+        model: model,
         contents: { 
           parts: [
             { inlineData: { data, mimeType } }, 
@@ -262,7 +279,7 @@ export const analyzeImageAttributes = async (base64Image: string) => {
         }
       });
       return JSON.parse(response.text || '{}');
-    });
+    }, 'gemini-3.1-pro-preview');
   } catch (error) { 
     console.error("Image analysis error:", error);
     throw error; 
@@ -277,9 +294,9 @@ export const analyzeResultingAesthetics = async (base64Image: string): Promise<s
   const [header, data] = base64Image.split(';base64,');
   const mimeType = header.split(':')[1];
   try {
-    return await retryWithBackoff(async () => {
+    return await retryWithBackoff(async (model) => {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+        model: model,
         contents: {
           parts: [
             { inlineData: { data, mimeType } },
@@ -288,7 +305,7 @@ export const analyzeResultingAesthetics = async (base64Image: string): Promise<s
         }
       });
       return response.text || "Analysis unavailable.";
-    });
+    }, 'gemini-3.1-pro-preview');
   } catch (error) {
     console.error("Aesthetics analysis error:", error);
     return "Result Analysis failed.";
@@ -452,9 +469,9 @@ export const generateBeautyImage = async (state: BeautyState): Promise<string | 
   addRef('face', 'FACIAL');
 
   try {
-    return await retryWithBackoff(async () => {
+    return await retryWithBackoff(async (model) => {
       const response = await ai.models.generateContent({ 
-        model: 'gemini-3.1-flash-image-preview', 
+        model: model, 
         contents: { parts }, 
         config: { imageConfig: { aspectRatio: state.aspectRatio, imageSize: "2K" } } 
       });
@@ -462,6 +479,6 @@ export const generateBeautyImage = async (state: BeautyState): Promise<string | 
         if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
       }
       return null;
-    });
+    }, 'gemini-3.1-flash-image-preview');
   } catch (error) { throw error; }
 };
