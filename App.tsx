@@ -452,6 +452,36 @@ const App: React.FC = () => {
     });
   };
 
+  const handleSetBaseImage = (base64String: string) => {
+    const img = new Image();
+    img.onload = async () => {
+      const detectedRatio = calculateAspectRatio(img);
+      const validRatios = ["1:1", "3:4", "4:3", "9:16", "16:9"];
+      const finalRatio = (validRatios.includes(detectedRatio) ? detectedRatio : "1:1") as BeautyState['aspectRatio'];
+      
+      updateState({ baseImage: base64String, aspectRatio: finalRatio, baseline: undefined });
+      try {
+        setIsAnalyzing(true);
+        const analysis = await analyzeImageAttributes(base64String);
+        await applyAnalysis(analysis, base64String, detectedRatio);
+      } catch (err: any) {
+        console.error("Analysis failed:", err);
+        const rawMsg = err.message || "Unknown error";
+        let displayMsg = `AI analysis failed: ${rawMsg}. Please check your API key and connection.`;
+        if (rawMsg.includes("403")) displayMsg = "403 Forbidden: 유료 결제 계정이 아니거나 API 접근 권한이 없습니다.";
+        if (rawMsg.includes("429")) displayMsg = "429 Too Many Requests: 할당량을 초과했습니다. 잠시 후 시도하세요.";
+        if (rawMsg.includes("entity was not found")) {
+          displayMsg = "API 키가 올바른 프로젝트에 속해 있지 않습니다. 키를 다시 선택하세요.";
+          setHasApiKey(false);
+        }
+        setError(displayMsg);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+    img.src = base64String;
+  };
+
   const onFileUpload = (type: keyof BeautyState['referenceImages'] | 'base') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -459,33 +489,7 @@ const App: React.FC = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         if (type === 'base') {
-          const img = new Image();
-          img.onload = async () => {
-            const detectedRatio = calculateAspectRatio(img);
-            const validRatios = ["1:1", "3:4", "4:3", "9:16", "16:9"];
-            const finalRatio = (validRatios.includes(detectedRatio) ? detectedRatio : "1:1") as BeautyState['aspectRatio'];
-            
-            updateState({ baseImage: base64String, aspectRatio: finalRatio, baseline: undefined });
-            try {
-              setIsAnalyzing(true);
-              const analysis = await analyzeImageAttributes(base64String);
-              await applyAnalysis(analysis, base64String, detectedRatio);
-            } catch (err: any) {
-              console.error("Analysis failed:", err);
-              const rawMsg = err.message || "Unknown error";
-              let displayMsg = `AI analysis failed: ${rawMsg}. Please check your API key and connection.`;
-              if (rawMsg.includes("403")) displayMsg = "403 Forbidden: 유료 결제 계정이 아니거나 API 접근 권한이 없습니다.";
-              if (rawMsg.includes("429")) displayMsg = "429 Too Many Requests: 할당량을 초과했습니다. 잠시 후 시도하세요.";
-              if (rawMsg.includes("entity was not found")) {
-                displayMsg = "API 키가 올바른 프로젝트에 속해 있지 않습니다. 키를 다시 선택하세요.";
-                setHasApiKey(false);
-              }
-              setError(displayMsg);
-            } finally {
-              setIsAnalyzing(false);
-            }
-          };
-          img.src = base64String;
+          handleSetBaseImage(base64String);
         } else {
           updateState({ referenceImages: { ...state.referenceImages, [type]: base64String } });
         }
@@ -697,7 +701,7 @@ const App: React.FC = () => {
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateState({ baseImage: item.image });
+                                handleSetBaseImage(item.image);
                               }}
                               className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white transition-all"
                               title="Set Base"
@@ -814,7 +818,7 @@ const App: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    updateState({ baseImage: galleryImages[selectedHistoryIndex].image });
+                    handleSetBaseImage(galleryImages[selectedHistoryIndex].image);
                     setSelectedHistoryIndex(null);
                   }}
                   className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
