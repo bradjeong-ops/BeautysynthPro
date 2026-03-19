@@ -372,7 +372,24 @@ export const StudioSidebar: React.FC<SidebarProps> = ({ state, updateState, onRe
                   {state.referenceImages.hair && <LockOverlay category="Hair" />}
                   <div className={state.referenceImages.hair ? 'opacity-20 pointer-events-none filter blur-[1px]' : ''}>
                     <SubSection title="Cut & Style" defaultOpen={true}>
-                      <div className="space-y-4"><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Length & Cut</span><StyleSelector options={state.gender === 'male' ? MALE_HAIR_LENGTHS : HAIR_LENGTHS} selectedId={state.hair.hairLength} onSelect={(id) => handleHairChange('hairLength', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Texture & Perm</span><StyleSelector options={state.gender === 'male' ? MALE_HAIR_TEXTURES : HAIR_TEXTURES} selectedId={state.hair.hairTexture} onSelect={(id) => handleHairChange('hairTexture', id)} /></div><div className="space-y-2"><span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Bangs</span><StyleSelector options={state.gender === 'male' ? MALE_BANG_STYLES : BANG_STYLES} selectedId={state.hair.bangStyle} onSelect={(id) => handleHairChange('bangStyle', id)} /></div></div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Length & Cut</span>
+                          <StyleSelector options={state.gender === 'male' ? MALE_HAIR_LENGTHS : HAIR_LENGTHS} selectedId={state.hair.hairLength} onSelect={(id) => handleHairChange('hairLength', id)} />
+                        </div>
+                        {state.hair.hairLength !== 'buzz' && (
+                          <>
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Texture & Perm</span>
+                              <StyleSelector options={state.gender === 'male' ? MALE_HAIR_TEXTURES : HAIR_TEXTURES} selectedId={state.hair.hairTexture} onSelect={(id) => handleHairChange('hairTexture', id)} />
+                            </div>
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Bangs</span>
+                              <StyleSelector options={state.gender === 'male' ? MALE_BANG_STYLES : BANG_STYLES} selectedId={state.hair.bangStyle} onSelect={(id) => handleHairChange('bangStyle', id)} />
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </SubSection>
                     <SubSection title="Quality & Volume" defaultOpen={false}>
                       <div className="space-y-4"><div className="space-y-2"><div className="flex justify-between text-[10px] font-bold"><span className="text-zinc-500">Volume</span><span className="text-rose-400">{state.hair.hairVolume}</span></div><input type="range" min="0" max="100" value={state.hair.hairVolume} onChange={(e) => handleHairChange('hairVolume', parseInt(e.target.value))} className="w-full accent-rose-500 h-1 bg-zinc-900 rounded-full appearance-none cursor-pointer" /></div><div className="space-y-2"><div className="flex justify-between text-[10px] font-bold items-center"><div className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-rose-400" /><span className="text-zinc-500">Hair Shine</span></div><span className="text-rose-400">{state.hair.hairShine}%</span></div><input type="range" min="0" max="100" value={state.hair.hairShine} onChange={(e) => handleHairChange('hairShine', parseInt(e.target.value))} className="w-full accent-rose-500 h-1 bg-zinc-900 rounded-full appearance-none cursor-pointer" /></div></div>
