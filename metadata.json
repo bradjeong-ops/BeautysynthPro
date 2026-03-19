@@ -1,0 +1,7 @@
+{
+  "name": "BeautySynth Pro Studio",
+  "description": "A professional AI-powered beauty studio for facial feature modification, makeup artistry, and hairstyle visualization using Gemini 3.0 Pro.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
