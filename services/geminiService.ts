@@ -195,18 +195,32 @@ export const setQuotaExceededCallback = (callback: () => void) => {
 };
 
 async function retryWithBackoff<T>(fn: (model: string) => Promise<T>, preferredModel: string, retries = 3, backoff = 2000): Promise<T> {
-  let currentModel = isProQuotaExceeded ? 'gemini-3-flash-preview' : preferredModel;
+  const isProModel = preferredModel.includes('pro');
+  let currentModel = (isProQuotaExceeded && isProModel) ? 'gemini-3-flash-preview' : preferredModel;
   
   try {
     return await fn(currentModel);
   } catch (error: any) {
-    const isQuotaExceeded = error?.status === 'RESOURCE_EXHAUSTED' || error?.code === 429;
+    const errorStr = JSON.stringify(error);
+    const isQuotaExceeded = 
+      error?.status === 'RESOURCE_EXHAUSTED' || 
+      error?.code === 429 || 
+      error?.error?.code === 429 ||
+      (error?.message && (
+        error.message.includes('429') || 
+        error.message.includes('quota') || 
+        error.message.includes('RESOURCE_EXHAUSTED')
+      )) ||
+      errorStr.includes('429') ||
+      errorStr.includes('quota') ||
+      errorStr.includes('RESOURCE_EXHAUSTED');
     
-    if (isQuotaExceeded && currentModel === 'gemini-3.1-pro-preview') {
-      console.warn("Gemini 3.1 Pro quota exceeded, falling back to Gemini 3 Flash.");
+    if (isQuotaExceeded && isProModel && !currentModel.includes('flash')) {
+      console.warn("Gemini Pro quota exceeded, falling back to Gemini 3 Flash.");
       isProQuotaExceeded = true;
       if (quotaExceededCallback) quotaExceededCallback();
-      return retryWithBackoff(fn, 'gemini-3-flash-preview', retries, backoff);
+      // Reset retries for the fallback model
+      return retryWithBackoff(fn, 'gemini-3-flash-preview', 3, backoff);
     }
 
     if (retries > 0 && isQuotaExceeded) {
