@@ -119,9 +119,9 @@ const CategoryAccordion = ({ title, icon: Icon, children, defaultOpen = true, on
           <div className="flex items-center gap-3"><div className={`p-1.5 rounded-lg transition-colors ${isOpen ? 'bg-indigo-500/10 text-indigo-400' : 'bg-zinc-900 text-zinc-500'}`}><Icon className="w-3.5 h-3.5" /></div><span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isOpen ? 'text-zinc-200' : 'text-zinc-500 group-hover:text-zinc-300'}`}>{title}</span></div>
           {isOpen ? <ChevronDown className="w-3 h-3 text-zinc-600" /> : <ChevronRight className="w-3 h-3 text-zinc-600" />}
         </button>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {onReset && <button onClick={(e) => { e.stopPropagation(); onReset(); }} className="p-1.5 rounded-full text-zinc-600 hover:text-indigo-400 hover:bg-zinc-800 transition-all" title="분석 수치로 초기화"><RotateCcw className="w-3.5 h-3.5" /></button>}
-          {onOpenHelp && <button onClick={(e) => { e.stopPropagation(); onOpenHelp(); }} className="p-1.5 rounded-full text-zinc-600 hover:text-rose-400 hover:bg-zinc-800 transition-all" title="도움말 보기"><HelpCircle className="w-3.5 h-3.5" /></button>}
+        <div className="flex items-center gap-1 transition-opacity">
+          {onReset && <button onClick={(e) => { e.stopPropagation(); onReset(); }} className="p-1.5 rounded-full text-zinc-100 hover:text-indigo-400 hover:bg-zinc-800 transition-all" title="분석 수치로 초기화"><RotateCcw className="w-3.5 h-3.5" /></button>}
+          {onOpenHelp && <button onClick={(e) => { e.stopPropagation(); onOpenHelp(); }} className="p-1.5 rounded-full text-zinc-100 hover:text-rose-400 hover:bg-zinc-800 transition-all" title="도움말 보기"><HelpCircle className="w-3.5 h-3.5" /></button>}
         </div>
       </div>
       {isOpen && <div className="px-4 pb-6 animate-in fade-in slide-in-from-top-1 duration-200">{children}</div>}
@@ -304,7 +304,7 @@ export const StudioSidebar: React.FC<SidebarProps> = ({ state, updateState, onRe
         <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-indigo-500" /><h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Expert Edit Modes</h3></div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setIsMultiMode(!isMultiMode)}><span className={`text-[9px] font-bold uppercase transition-colors ${isMultiMode ? 'text-indigo-400' : 'text-zinc-600'}`}>Multi</span><div className={`w-7 h-3.5 rounded-full p-0.5 transition-colors relative ${isMultiMode ? 'bg-indigo-600' : 'bg-zinc-800'}`}><div className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isMultiMode ? 'translate-x-3.5' : 'translate-x-0'}`} /></div></div>
-            {hasActiveModes && <button onClick={() => updateState({ editModes: { face: false, skin: false, hair: false, makeup: false }})} className="text-[9px] font-bold text-zinc-600 hover:text-zinc-400 uppercase">Reset</button>}
+            {hasActiveModes && <button onClick={() => updateState({ editModes: { face: false, skin: false, hair: false, makeup: false }})} className="text-[9px] font-bold text-zinc-100 hover:text-zinc-300 uppercase">Reset</button>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">{[{ id: 'skin', label: 'Skin', icon: Droplets }, { id: 'face', label: 'Face', icon: Scan }, { id: 'hair', label: 'Hair', icon: Scissors }, { id: 'makeup', label: 'Makeup', icon: Brush }].map((mode) => { const isActive = state.editModes[mode.id as keyof BeautyState['editModes']]; return <button key={mode.id} onClick={() => toggleEditMode(mode.id as any)} className={`flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-2xl border text-[10px] font-bold transition-all ${isActive ? 'bg-rose-500/10 border-rose-400/50 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:border-zinc-700 active:scale-95'}`}><mode.icon className={`w-4 h-4 ${isActive ? 'text-rose-400' : 'text-zinc-600'}`} />{mode.label}</button>; })}</div>
